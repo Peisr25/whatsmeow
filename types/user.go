@@ -16,6 +16,12 @@ import (
 type VerifiedName struct {
 	Certificate *waVnameCert.VerifiedNameCertificate
 	Details     *waVnameCert.VerifiedNameCertificate_Details
+
+	VerifiedLevel string
+	Version       int
+	HostStorage   int
+	ActualActors  int
+	PrivacyModeTS time.Time
 }
 
 // UserInfo contains info about a WhatsApp user.
@@ -88,6 +94,8 @@ type IsOnWhatsAppResponse struct {
 	JID   JID    // The canonical user ID
 	LID   *JID   // The local ID (if available)
 	IsIn  bool   // Whether the phone is registered or not.
+
+	PhoneNumber JID
 
 	VerifiedName *VerifiedName // If the phone is a business, the verified business details.
 }
