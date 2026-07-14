@@ -56,9 +56,29 @@ type ReqCreateGroup struct {
 func (cli *Client) CreateGroup(ctx context.Context, req ReqCreateGroup) (*types.GroupInfo, error) {
 	participantNodes := make([]waBinary.Node, len(req.Participants), len(req.Participants)+1)
 	for i, participant := range req.Participants {
+		// LID addressing (jul/2026): o servidor DROPA em silêncio (timeout 1m15s)
+		// o create IQ quando o participante vai como PN e o contato é LID-mapped;
+		// endereçado por LID o servidor responde. Espelha UpdateGroupParticipants:
+		// jid=LID + attr phone_number=PN quando existe mapeamento no store.
+		phoneNumber := types.EmptyJID
+		if cli.Store != nil && cli.Store.LIDs != nil {
+			if participant.Server == types.DefaultUserServer {
+				if lid, lidErr := cli.Store.LIDs.GetLIDForPN(ctx, participant); lidErr == nil && !lid.IsEmpty() {
+					phoneNumber = participant
+					participant = lid
+				}
+			} else if participant.Server == types.HiddenUserServer {
+				if pn, pnErr := cli.Store.LIDs.GetPNForLID(ctx, participant); pnErr == nil && !pn.IsEmpty() {
+					phoneNumber = pn
+				}
+			}
+		}
 		participantNodes[i] = waBinary.Node{
 			Tag:   "participant",
 			Attrs: waBinary.Attrs{"jid": participant},
+		}
+		if !phoneNumber.IsEmpty() {
+			participantNodes[i].Attrs["phone_number"] = phoneNumber
 		}
 		// 🔒 FIX: Verificar se PrivacyTokens está inicializado antes de usar
 		var token []byte
